@@ -40,17 +40,22 @@ int process_stream(WordCountEntry entries[], int entry_count)
 {
   short line_count = 0;
   char buffer[30];
-
-  while (gets(buffer)) {
+  char *token;
+  char *e;
+  while ((fgets(buffer,sizeof(buffer),stdin)) != NULL) {
     if (*buffer == '.')
       break;
+    token = strtok(buffer," \n");
+    while(token != NULL){
     /* Compare against each entry */
     int i = 0;
     while (i < entry_count) {
-      if (!strcmp(entries[i].word, buffer))
+      if (!strcmp(entries[i].word, token))
         entries[i].counter++;
       i++;
     }
+   token= strtok(NULL," \n");
+  }
     line_count++;
   }
   return line_count;
@@ -60,8 +65,10 @@ int process_stream(WordCountEntry entries[], int entry_count)
 void print_result(WordCountEntry entries[], int entry_count)
 {
   printf("Result:\n");
-  while (entry_count-- > 0) {
-    printf("%s:%d\n", entries->word, entries->counter);
+  int i = 0;
+  while (i < entry_count) {
+    printf("%s:%d\n", entries[i].word, entries[i].counter);
+    i++;
   }
 }
 
@@ -76,7 +83,7 @@ int main(int argc, char **argv)
 {
   const char *prog_name = *argv;
 
-  WordCountEntry entries[5];
+  WordCountEntry entries[argc-1];
   int entryCount = 0;
 
   /* Entry point for the testrunner program */
@@ -91,20 +98,22 @@ int main(int argc, char **argv)
       switch ((*argv)[1]) {
         case 'h':
           printHelp(prog_name);
+          break;
         default:
-          printf("%s: Invalid option %s. Use -h for help.\n",
+          fprintf(stderr,"%s: Invalid option %s. Use -h for help.\n",
                  prog_name, *argv);
       }
     } else {
-      if (entryCount < LENGTH(entries)) {
+      if (entryCount < LENGTH(entries) && *argv != prog_name) {
         entries[entryCount].word = *argv;
-        entries[entryCount++].counter = 0;
+        entries[entryCount].counter = 0;
+        entryCount++;
       }
     }
     argv++;
   }
   if (entryCount == 0) {
-    printf("%s: Please supply at least one word. Use -h for help.\n",
+    fprintf(stderr,"%s: Please supply at least one word. Use -h for help.\n",
            prog_name);
     return EXIT_FAILURE;
   }
