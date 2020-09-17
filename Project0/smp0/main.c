@@ -20,63 +20,111 @@ Expected output:
  cat:1
  nap:0
  dog:0
-
-Note: this code was automatically formatted (styled) using 'indent main.c
--kr'.
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "assignment1_test.h"
+#include "smp0_tests.h"
+
+#define LENGTH(s) (sizeof(s) / sizeof(*s))
 
 /* Structures */
 typedef struct {
-    char *word;
-    int counter;
+  char *word;
+  int counter;
 } WordCountEntry;
 
 
 int process_stream(WordCountEntry entries[], int entry_count)
 {
-    short line_count = 0;
-    char buffer[30];
-    char *word;
-
-    /* C4: replace gets with fgets */
-    while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
-	if (*buffer == '.')
-	    break;
-
-	/* C5: strtok() can be used to split a line into individual tokens.
-	   For the separator characters we use whitespace (space and
-	   tab), as well as the newline character '\n'.  We could also
-	   trim the buffer to get rid of the newline, instead. */
-	word = strtok(buffer, " \t\n");
-	/* C5: strtok returns NULL when no more tokens are available. */
-	while (word != NULL) {
-
-	    /* Compare against each entry */
-	    int i = 0;
-	    while (i < entry_count) {
-
-		if (!strcmp(entries[i].word, word))
-		    entries[i].counter++;
-		i++;
-	    }
-	    /* C5: get the next token */
-	    word = strtok(NULL, " \t\n");
-	}
-	line_count++;
+  short line_count = 0;
+  char buffer[30];
+  char *token;
+  char *e;
+  while ((fgets(buffer,sizeof(buffer),stdin)) != NULL) {
+    if (*buffer == '.')
+      break;
+    token = strtok(buffer," \n");
+    while(token != NULL){
+    /* Compare against each entry */
+    int i = 0;
+    while (i < entry_count) {
+      if (!strcmp(entries[i].word, token))
+        entries[i].counter++;
+      i++;
     }
-    return line_count;
+   token= strtok(NULL," \n");
+  }
+    line_count++;
+  }
+  return line_count;
 }
 
 
-void print_result(WordCountEntry entries[], int entry_count, FILE * output)
+void print_result(WordCountEntry entries[], int entry_count)
 {
-    /* B5: introduce a temporary variable i and use it to count up from 0 */
-    unsigned int i;
-    /* C2: send output to the right stream */
-    fprintf(output, "Result:\n");
-    for (i = 0; i < entry_count; i++) {
+  printf("Result:\n");
+  int i = 0;
+  while (i < entry_count) {
+    printf("%s:%d\n", entries[i].word, entries[i].counter);
+    i++;
+  }
+}
+
+
+void printHelp(const char *name)
+{
+  printf("usage: %s [-h] <word1> ... <wordN>\n", name);
+}
+
+
+int main(int argc, char **argv)
+{
+  const char *prog_name = *argv;
+
+  WordCountEntry entries[argc-1];
+  int entryCount = 0;
+
+  /* Entry point for the testrunner program */
+  if (argc > 1 && !strcmp(argv[1], "-test")) {
+    run_smp0_tests(argc - 1, argv + 1);
+    return EXIT_SUCCESS;
+  }
+
+  while (*argv != NULL) {
+    if (**argv == '-') {
+
+      switch ((*argv)[1]) {
+        case 'h':
+          printHelp(prog_name);
+          break;
+        default:
+          fprintf(stderr,"%s: Invalid option %s. Use -h for help.\n",
+                 prog_name, *argv);
+      }
+    } else {
+      if (entryCount < LENGTH(entries) && *argv != prog_name) {
+        entries[entryCount].word = *argv;
+        entries[entryCount].counter = 0;
+        entryCount++;
+      }
+    }
+    argv++;
+  }
+  if (entryCount == 0) {
+    fprintf(stderr,"%s: Please supply at least one word. Use -h for help.\n",
+           prog_name);
+    return EXIT_FAILURE;
+  }
+  if (entryCount == 1) {
+    printf("Looking for a single word\n");
+  } else {
+    printf("Looking for %d words\n", entryCount);
+  }
+
+  process_stream(entries, entryCount);
+  print_result(entries, entryCount);
+
+  return EXIT_SUCCESS;
+}
